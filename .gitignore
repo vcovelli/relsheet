@@ -1,0 +1,28 @@
+# Node.js
+node_modules/
+.env
+dist/
+build/
+.cache/
+.next/
+out/
+*.log
+*.tsbuildinfo
+
+# macOS
+.DS_Store
+
+# Vercel / Netlify / output
+.vercel/
+.netlify/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor
+.idea/
+.vscode/
+*.swp
