@@ -5,6 +5,7 @@ export default function TextCell({
   value,
   editing = false,
   row,
+  rowId,
   column,
   onSave,
   onEditComplete,
@@ -12,8 +13,9 @@ export default function TextCell({
 }: {
   value: any;
   row: any;
+  rowId: string;
   column: CustomColumnDef<any>;
-  onSave: (id: number, key: string, value: any) => void;
+  onSave: (id: string, key: string, value: any) => void;
   editing?: boolean;
   onEditComplete?: () => void;
   onStartEdit?: () => void;
@@ -35,8 +37,8 @@ export default function TextCell({
         value={val}
         onChange={(e) => setVal(e.target.value)}
         onBlur={() => {
-          if (val !== value) onSave(row.id, column.accessorKey, val);
-          onEditComplete?.();
+          if (val !== value) onSave(rowId, column.accessorKey, val);
+          setTimeout(() => onEditComplete?.(), 0);
         }}
         onKeyDown={(e) => {
           if (e.key === "Enter") inputRef.current?.blur();

@@ -1,61 +1,50 @@
-import { useMemo } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import EditableCell from "@/components/Grid/EditableCell";
-import mockColumns from "@/data/mockColumns";
-import { Row } from "@/types";
+import { Row, CustomColumnDef } from "@/types";
 
-export function useColumns(
+export function buildColumnDefs(
   editingCell: { rowIndex: number; colIndex: number } | null,
-  onSave: (id: number, key: string, value: any) => void,
+  onSave: (id: string, key: string, value: any) => void,
   clearEdit: () => void,
-  setEditingCell: (cell: { rowIndex: number; colIndex: number }) => void
+  setEditingCell: (cell: { rowIndex: number; colIndex: number }) => void,
+  schema: CustomColumnDef<Row>[]
 ): ColumnDef<Row>[] {
-  return useMemo(() => {
-    const baseColumns: ColumnDef<Row>[] = [
-      {
-        accessorKey: "__rownum__",
-        header: "#",
-        enableResizing: false,
-        cell: ({ row }) => row.index + 1,
-        id: "__rownum__",
-      },
-    ];
+  const baseColumns: ColumnDef<Row>[] = [
+    {
+      accessorKey: "__rownum__",
+      header: "#",
+      enableResizing: false,
+      cell: ({ row }) => row.index + 1,
+      id: "__rownum__",
+    },
+  ];
 
-    const editableColumns: ColumnDef<Row>[] = mockColumns.map((col) => ({
-      accessorKey: col.accessorKey,
-      header: col.header,
-      id: col.accessorKey,
-      size: 160,
-      cell: ({ getValue, row, column }) => {
-        const rowIndex = row.index;
-        const colIndex =
-          baseColumns.length +
-          mockColumns.findIndex((c) => c.accessorKey === column.id);
+  const editableColumns: ColumnDef<Row>[] = schema.map((col, colIndex) => ({
+    accessorKey: col.accessorKey,
+    header: col.header,
+    id: col.accessorKey,
+    size: 160,
+    cell: ({ getValue, row }) => {
+      const rowIndex = row.index;
+      const actualColIndex = baseColumns.length + colIndex;
 
-        const originalCol = mockColumns.find((c) => c.accessorKey === column.id);
+      return (
+        <EditableCell
+          value={getValue()}
+          row={row.original}
+          rowId={row.original.__rowId}
+          column={col}
+          onSave={onSave}
+          editing={
+            editingCell?.rowIndex === rowIndex &&
+            editingCell?.colIndex === actualColIndex
+          }
+          onStartEdit={() => setEditingCell({ rowIndex, colIndex: actualColIndex })}
+          onEditComplete={clearEdit}
+        />
+      );
+    },
+  }));
 
-        if (!originalCol) {
-          console.warn("Column definition not found for:", column.id);
-          return null;
-        }
-
-        return (
-          <EditableCell
-            value={getValue()}
-            row={row.original}
-            column={originalCol}
-            onSave={onSave}
-            editing={
-              editingCell?.rowIndex === rowIndex &&
-              editingCell?.colIndex === colIndex
-            }
-            onStartEdit={() => setEditingCell({ rowIndex, colIndex })}
-            onEditComplete={clearEdit}
-          />
-        );
-      },
-    }));
-
-    return [...baseColumns, ...editableColumns];
-  }, [editingCell, onSave, clearEdit, setEditingCell]);
+  return [...baseColumns, ...editableColumns];
 }

@@ -2,15 +2,20 @@
 
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import ColumnSettingsPanel from "@/components/UI/ColumnSettingsPanel";
+import GridTable from "@/components/Grid/GridTable";
+import { CustomColumnDef } from "@/types";
 
 interface Sheet {
-  id: number;
+  id: string;
   name: string;
   created_by: string | null;
 }
 
 export default function SheetList() {
   const [sheets, setSheets] = useState<Sheet[]>([]);
+  const [isSettingsPanelOpen, setIsSettingsPanelOpen] = useState(false);
+  const [columnSettingsTarget, setColumnSettingsTarget] = useState<CustomColumnDef<any> | null>(null);
 
   useEffect(() => {
     const fetchSheets = async () => {
@@ -25,8 +30,13 @@ export default function SheetList() {
     fetchSheets();
   }, []);
 
+  const handleUpdateColumn = (updatedCol: CustomColumnDef<any>) => {
+    // Handle column update here if needed
+    setIsSettingsPanelOpen(false);
+  };
+
   return (
-    <div className="p-8">
+    <div className="relative p-8">
       <h1 className="text-2xl font-bold mb-6">🧾 Relational Spreadsheet</h1>
       {sheets.length === 0 ? (
         <p className="text-gray-600">Loading...</p>
@@ -41,10 +51,26 @@ export default function SheetList() {
               <p className="text-sm text-gray-500">
                 Created By: {sheet.created_by ?? "Anonymous"}
               </p>
+              <div className="mt-4">
+                <GridTable
+                  onOpenSettingsPanel={(col) => {
+                    setColumnSettingsTarget(col);
+                    setIsSettingsPanelOpen(true);
+                  }}
+                />
+              </div>
             </div>
           ))}
         </div>
       )}
+
+      {/* Global overlay panel */}
+      <ColumnSettingsPanel
+        isOpen={isSettingsPanelOpen}
+        column={columnSettingsTarget}
+        onClose={() => setIsSettingsPanelOpen(false)}
+        onUpdate={handleUpdateColumn}
+      />
     </div>
   );
 }

@@ -1,13 +1,14 @@
 import React from "react";
-import TextCell from "./TextCell";
-import ChoiceCell from "./ChoiceCell";
-import ReferenceCell from "./ReferenceCell";
+import TextCell from "./Text/TextCell";
+import ChoiceCell from "./Choice/ChoiceCell";
+import ReferenceCell from "./Reference/ReferenceCell";
 import { CustomColumnDef } from "@/types";
-import ChoiceTag from "@components/Grid/ChoiceTag";
+import ChoiceTag from "@/components/Grid/EditableCell/Choice/ChoiceTag";
 
 export default function EditableCell({
   value,
   row,
+  rowId,
   column,
   onSave,
   editing,
@@ -16,33 +17,57 @@ export default function EditableCell({
 }: {
   value: any;
   row: any;
+  rowId: string;
   column: CustomColumnDef<any>;
-  onSave: (id: number, key: string, value: any) => void;
+  onSave: (rowId: string, key: string, value: any) => void;
   editing?: boolean;
   onEditComplete?: () => void;
   onStartEdit?: () => void;
 }) {
-  console.log("🧩 EditableCell rendered", {
+  console.log("🧹 EditableCell received", {
+    rowId,
     accessorKey: column.accessorKey,
-    type: column.type,
-    editing,
     value,
+    type: typeof value,
+    column,
+    row,
   });
 
-  const handleSave = (newValue: any) => {
+  // This save handler receives all 3 args from child components
+  const handleSave = (id: string, key: string, newValue: any) => {
+    const isSameAsRowId = newValue === rowId;
+
+    console.log("📂 EditableCell handleSave called", {
+      rowId: id,
+      accessorKey: key,
+      newValue,
+      oldValue: value,
+      newValueIsRowId: isSameAsRowId,
+    });
+
+    if (isSameAsRowId) {
+      console.error("🚫 Blocked saving rowId as value", {
+        newValue,
+        rowId: id,
+        accessorKey: key,
+        column,
+      });
+      return;
+    }
+
     if (newValue !== value) {
-      onSave(row.id, column.accessorKey, newValue);
+      onSave(id, key, newValue);
     }
     onEditComplete?.();
   };
 
-  // 👉 Render edit mode
   if (editing) {
     if (column.type === "reference" && column.referenceData) {
       return (
         <ReferenceCell
           value={value}
           row={row}
+          rowId={rowId}
           column={
             column as CustomColumnDef<any> & {
               referenceData: { id: string; name: string }[];
@@ -61,6 +86,7 @@ export default function EditableCell({
         <ChoiceCell
           value={value}
           row={row}
+          rowId={rowId}
           column={column}
           onSave={handleSave}
           editing
@@ -74,6 +100,7 @@ export default function EditableCell({
       <TextCell
         value={value}
         row={row}
+        rowId={rowId}
         column={column}
         onSave={handleSave}
         editing
@@ -83,7 +110,6 @@ export default function EditableCell({
     );
   }
 
-  // 👉 View mode for reference
   if (column.type === "reference" && column.referenceData) {
     const display =
       column.referenceData.find((item) => item.id === value)?.name ?? "Unknown";
@@ -95,7 +121,7 @@ export default function EditableCell({
         onDoubleClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          console.log("🟩 ReferenceCell double-clicked");
+          console.log("🟢 ReferenceCell double-clicked");
           onStartEdit?.();
         }}
         onKeyDown={(e) => {
@@ -111,8 +137,22 @@ export default function EditableCell({
     );
   }
 
-  // 👉 View mode for choice
   if (column.type === "choice" && column.choices) {
+    let display: string;
+
+    if (
+      Array.isArray(column.choices) &&
+      typeof column.choices[0] === "object" &&
+      "id" in column.choices[0]
+    ) {
+      display =
+        (column.choices as { id: string; name: string }[]).find(
+          (choice) => choice.id === value
+        )?.name ?? "Unknown";
+    } else {
+      display = value;
+    }
+
     return (
       <button
         type="button"
@@ -120,7 +160,7 @@ export default function EditableCell({
         onDoubleClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          console.log("🟦 ChoiceCell double-clicked");
+          console.log("🔶 ChoiceCell double-clicked");
           onStartEdit?.();
         }}
         onKeyDown={(e) => {
@@ -131,17 +171,17 @@ export default function EditableCell({
         }}
         tabIndex={0}
       >
-        <ChoiceTag value={value} />
+        <ChoiceTag value={display} />
       </button>
     );
   }
 
-  // 👉 View mode for text
   if (!column.type || column.type === "text") {
     return (
       <TextCell
         value={value}
         row={row}
+        rowId={rowId}
         column={column}
         onSave={onSave}
         editing={false}
