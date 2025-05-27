@@ -38,6 +38,7 @@ export default function SheetsPage() {
                   setColumnSettingsTarget(col);
                   setIsSettingsPanelOpen(true);
                 }}
+                isSettingsPanelOpen={isSettingsPanelOpen}
               />
             )}
           </motion.div>

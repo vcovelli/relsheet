@@ -57,6 +57,7 @@ export default function SheetList() {
                     setColumnSettingsTarget(col);
                     setIsSettingsPanelOpen(true);
                   }}
+                  isSettingsPanelOpen={isSettingsPanelOpen}
                 />
               </div>
             </div>

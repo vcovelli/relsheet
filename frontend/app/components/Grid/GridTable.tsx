@@ -15,16 +15,23 @@ import RenameModal from "@/components/UI/RenameColumnModal";
 
 const GridTable: React.FC<{
   onOpenSettingsPanel: (col: CustomColumnDef<any>) => void;
-}> = ({ onOpenSettingsPanel }) => {
+  isSettingsPanelOpen: boolean;
+}> = ({ onOpenSettingsPanel, isSettingsPanelOpen }) => {
   const [data, setData] = useState<Row[]>([]);
   const [focusedCell, setFocusedCell] = useState<{ rowIndex: number; colIndex: number } | null>(null);
   const [editingCell, setEditingCell] = useState<{ rowIndex: number; colIndex: number } | null>(null);
-  const [rawColumns, setRawColumns] = useState<CustomColumnDef<Row>[]>(mockColumns);
   const [zebraStriping, setZebraStriping] = useState(true);
   const [focusedColIndex, setFocusedColIndex] = useState<number | null>(null);
+  const [focusedColumn, setFocusedColumn] = useState<CustomColumnDef<any> | null>(null);
   const [renameTarget, setRenameTarget] = useState<{ index: number; name: string } | null>(null);
   const [renamePosition, setRenamePosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [showRenameModal, setShowRenameModal] = useState(false);
+  const [focusedRowIndex, setFocusedRowIndex] = useState<number | null>(null);
+  const [columnHighlightMode, setColumnHighlightMode] = useState(false);
+
+  const [rawColumns, setRawColumns] = useState<CustomColumnDef<Row>[]>(
+    mockColumns.filter((col) => col.accessorKey !== "__rowId")
+  );
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -66,6 +73,7 @@ const GridTable: React.FC<{
     data,
     columns: columnDefs,
     getCoreRowModel: getCoreRowModel(),
+    columnResizeMode: "onChange", 
   });
 
   useKeyboardNavigation({
@@ -90,6 +98,12 @@ const GridTable: React.FC<{
     setShowRenameModal(false);
   };
 
+  useEffect(() => {
+    if (isSettingsPanelOpen && focusedColumn && !showRenameModal) {
+      onOpenSettingsPanel(focusedColumn);
+    }
+  }, [focusedColumn?.accessorKey]);
+
   return (
     <div className="relative">
       <div
@@ -112,12 +126,18 @@ const GridTable: React.FC<{
           setRenamePosition={setRenamePosition}
           setColumnBeingRenamed={setRenameTarget}
           setShowRenameModal={setShowRenameModal}
+          handleContextMenu={handleContextMenu}
+          setRawColumns={setRawColumns}
+          setData={setData}
           focusedColIndex={focusedColIndex}
+          setFocusedRowIndex={setFocusedRowIndex}
           onFocusColumn={(col, index) => {
             if (showRenameModal) return;
             setFocusedColIndex(index);
-            onOpenSettingsPanel(col);
+            setFocusedColumn(col);
+            setColumnHighlightMode(true);
           }}
+          onOpenSettingsPanel={onOpenSettingsPanel}
         />
 
         <GridTableRows
@@ -125,18 +145,33 @@ const GridTable: React.FC<{
           focusedCell={focusedCell}
           editingCell={editingCell}
           handleCellClick={(rowIndex, colIndex, isEditable) => {
+            setColumnHighlightMode(false);
+            setFocusedRowIndex(null);
+
             if (
               editingCell &&
               editingCell.rowIndex === rowIndex &&
               editingCell.colIndex === colIndex
             )
               return;
+
             setFocusedCell({ rowIndex, colIndex });
+            setFocusedColIndex(colIndex);
+
+            const matchedRawCol = rawColumns[colIndex];
+            if (matchedRawCol) {
+              setFocusedColumn(matchedRawCol);
+            }
+
             if (isEditable) setEditingCell({ rowIndex, colIndex });
           }}
           handleContextMenu={handleContextMenu}
           zebraStriping={zebraStriping}
           focusedColIndex={focusedColIndex}
+          focusedRowIndex={focusedRowIndex}
+          setFocusedRowIndex={setFocusedRowIndex}
+          setFocusedColIndex={setFocusedColIndex}
+          columnHighlightMode={columnHighlightMode}
         />
 
         {showRenameModal && renameTarget && (

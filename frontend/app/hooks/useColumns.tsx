@@ -9,21 +9,18 @@ export function buildColumnDefs(
   setEditingCell: (cell: { rowIndex: number; colIndex: number }) => void,
   schema: CustomColumnDef<Row>[]
 ): ColumnDef<Row>[] {
-  const baseColumns: ColumnDef<Row>[] = [
-    {
-      accessorKey: "__rownum__",
-      header: "#",
-      enableResizing: false,
-      cell: ({ row }) => row.index + 1,
-      id: "__rownum__",
-    },
-  ];
+  const baseColumns: ColumnDef<Row>[] = [];
 
-  const editableColumns: ColumnDef<Row>[] = schema.map((col, colIndex) => ({
+  const editableColumns: ColumnDef<Row>[] = schema
+  .filter(col => col.accessorKey !== "__rowId")
+  .map((col, colIndex) => ({
     accessorKey: col.accessorKey,
     header: col.header,
     id: col.accessorKey,
     size: 160,
+    minSize: 60,
+    maxSize: 500,
+    enableResizing: true,
     cell: ({ getValue, row }) => {
       const rowIndex = row.index;
       const actualColIndex = baseColumns.length + colIndex;
@@ -39,7 +36,9 @@ export function buildColumnDefs(
             editingCell?.rowIndex === rowIndex &&
             editingCell?.colIndex === actualColIndex
           }
-          onStartEdit={() => setEditingCell({ rowIndex, colIndex: actualColIndex })}
+          onStartEdit={() =>
+            setEditingCell({ rowIndex, colIndex: actualColIndex })
+          }
           onEditComplete={clearEdit}
         />
       );
