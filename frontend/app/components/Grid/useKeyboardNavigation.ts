@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { CustomColumnDef, Row } from "@/types";
 
 type Props = {
@@ -22,18 +22,24 @@ export default function useKeyboardNavigation({
   rawColumns,
   columnDefs,
 }: Props) {
+  const lastKeyTimeRef = useRef<number>(0);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const now = performance.now();
+      if (now - lastKeyTimeRef.current < 16) return; // throttle ~60fps
+      lastKeyTimeRef.current = now;
+
       const active = document.activeElement as HTMLElement | null;
 
-      // Block keyboard nav if:
+      // Block if interacting with modal or input-like UI
       if (
-        showRenameModal || // rename modal visible
-        active?.tagName === "INPUT" || // typing in any input
-        active?.tagName === "TEXTAREA" || // or textarea
-        active?.isContentEditable || // or any editable element
-        active?.closest(".rename-modal") || // inside rename modal
-        active?.closest("[data-radix-popper-content-wrapper]") // or any popover
+        showRenameModal ||
+        active?.tagName === "INPUT" ||
+        active?.tagName === "TEXTAREA" ||
+        active?.isContentEditable ||
+        active?.closest(".rename-modal") ||
+        active?.closest("[data-radix-popper-content-wrapper]")
       ) {
         return;
       }
@@ -44,25 +50,35 @@ export default function useKeyboardNavigation({
       const maxRow = data.length - 1;
       const maxCol = columnDefs.length - 1;
 
+      const updateFocusIfChanged = (newRow: number, newCol: number) => {
+        if (
+          !focusedCell ||
+          focusedCell.rowIndex !== newRow ||
+          focusedCell.colIndex !== newCol
+        ) {
+          setFocusedCell({ rowIndex: newRow, colIndex: newCol });
+        }
+      };
+
       switch (e.key) {
         case "ArrowUp":
           e.preventDefault();
-          setFocusedCell({ rowIndex: Math.max(0, rowIndex - 1), colIndex });
+          updateFocusIfChanged(Math.max(0, rowIndex - 1), colIndex);
           break;
 
         case "ArrowDown":
           e.preventDefault();
-          setFocusedCell({ rowIndex: Math.min(maxRow, rowIndex + 1), colIndex });
+          updateFocusIfChanged(Math.min(maxRow, rowIndex + 1), colIndex);
           break;
 
         case "ArrowLeft":
           e.preventDefault();
-          setFocusedCell({ rowIndex, colIndex: Math.max(0, colIndex - 1) });
+          updateFocusIfChanged(rowIndex, Math.max(0, colIndex - 1));
           break;
 
         case "ArrowRight":
           e.preventDefault();
-          setFocusedCell({ rowIndex, colIndex: Math.min(maxCol, colIndex + 1) });
+          updateFocusIfChanged(rowIndex, Math.min(maxCol, colIndex + 1));
           break;
 
         case "Enter": {
@@ -74,9 +90,12 @@ export default function useKeyboardNavigation({
               editingCell?.rowIndex === rowIndex &&
               editingCell?.colIndex === colIndex
             ) {
-              const input = document.querySelector("[data-autofocus-select]") as HTMLElement;
-              input?.focus();
-              input?.click();
+              // Defer focus to avoid blocking event loop
+              setTimeout(() => {
+                const input = document.querySelector("[data-autofocus-select]") as HTMLElement;
+                input?.focus();
+                input?.click();
+              }, 0);
             } else {
               setEditingCell({ rowIndex, colIndex });
             }

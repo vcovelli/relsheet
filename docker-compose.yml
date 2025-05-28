@@ -9,7 +9,7 @@ services:
     volumes:
       - ./backend:/app
     ports:
-      - "8000:8000"
+      - "7999:7999"
     depends_on:
       - db
     environment:
@@ -27,7 +27,7 @@ services:
       context: ./frontend
     container_name: relsheet-frontend2
     ports:
-      - "3000:3000"
+      - "2999:2999"
     volumes:
       - ./frontend:/app
     command: npm run dev
@@ -40,7 +40,7 @@ services:
     image: postgres:14
     container_name: relsheet-db2
     ports:
-      - "5432:5432"
+      - "5433:5433"
     environment:
       POSTGRES_DB: relsheet
       POSTGRES_USER: postgres

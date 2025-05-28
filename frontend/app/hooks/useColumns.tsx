@@ -9,41 +9,37 @@ export function buildColumnDefs(
   setEditingCell: (cell: { rowIndex: number; colIndex: number }) => void,
   schema: CustomColumnDef<Row>[]
 ): ColumnDef<Row>[] {
-  const baseColumns: ColumnDef<Row>[] = [];
+  return schema
+    .filter(col => col.accessorKey !== "__rowId")
+    .map((col, colIndex) => ({
+      accessorKey: col.accessorKey,
+      header: col.header,
+      id: col.accessorKey,
+      size: 160,
+      minSize: 60,
+      maxSize: 500,
+      enableResizing: true,
+      cell: ({ getValue, row }) => {
+        const rowIndex = row.index;
+        const actualColIndex = colIndex;
 
-  const editableColumns: ColumnDef<Row>[] = schema
-  .filter(col => col.accessorKey !== "__rowId")
-  .map((col, colIndex) => ({
-    accessorKey: col.accessorKey,
-    header: col.header,
-    id: col.accessorKey,
-    size: 160,
-    minSize: 60,
-    maxSize: 500,
-    enableResizing: true,
-    cell: ({ getValue, row }) => {
-      const rowIndex = row.index;
-      const actualColIndex = baseColumns.length + colIndex;
-
-      return (
-        <EditableCell
-          value={getValue()}
-          row={row.original}
-          rowId={row.original.__rowId}
-          column={col}
-          onSave={onSave}
-          editing={
-            editingCell?.rowIndex === rowIndex &&
-            editingCell?.colIndex === actualColIndex
-          }
-          onStartEdit={() =>
-            setEditingCell({ rowIndex, colIndex: actualColIndex })
-          }
-          onEditComplete={clearEdit}
-        />
-      );
-    },
-  }));
-
-  return [...baseColumns, ...editableColumns];
+        return (
+          <EditableCell
+            value={getValue()}
+            row={row.original}
+            rowId={row.original.__rowId}
+            column={col}
+            onSave={onSave}
+            editing={
+              editingCell?.rowIndex === rowIndex &&
+              editingCell?.colIndex === actualColIndex
+            }
+            onStartEdit={() =>
+              setEditingCell({ rowIndex, colIndex: actualColIndex })
+            }
+            onEditComplete={clearEdit}
+          />
+        );
+      },
+    }));
 }

@@ -24,15 +24,13 @@ const getRowNumberColumnWidth = (rowCount: number) => {
   return digits * 8 + 32;
 };
 
-const columnTypes = [
+const columnTypes: { label: string; type: ColumnDataType }[] = [
   { label: "Text", type: "text" },
-  { label: "Numeric", type: "number" },
-  { label: "Integer", type: "integer" },
-  { label: "Check Box", type: "boolean" },
+  { label: "Number", type: "number" },
+  { label: "Boolean (Checkbox)", type: "boolean" },
   { label: "Date", type: "date" },
-  { label: "Date Time", type: "datetime" },
-  { label: "Choice List", type: "choice_list" },
-  { label: "Reference List", type: "reference_list" },
+  { label: "Choice List", type: "choice" },
+  { label: "Reference List", type: "reference" },
   { label: "Attachment", type: "attachment" },
   { label: "Formula", type: "formula" },
   { label: "Link", type: "link" },
@@ -88,27 +86,35 @@ const GridTableHeader: React.FC<Props> = ({
 
   if (!headerGroups) return null;
 
-  const handleAddColumn = (type: string) => {
+  const handleAddColumn = (type: ColumnDataType) => {
     const newKey = `col_${Date.now()}`;
     const newCol: CustomColumnDef<Row> = {
       accessorKey: newKey,
       header: `New ${type}`,
-      type: type as ColumnDataType,
+      type,
     };
 
     setRawColumns((prev) => [...prev, newCol]);
+
     setData((prev) =>
       prev.map((row) => ({
         ...row,
-        [newKey]: type === "number" || type === "integer" ? 0 : "",
+        [newKey]:
+          type === "number" ? 0 :
+          type === "boolean" ? false :
+          type === "date" ? null :
+          type === "formula" ? "" :
+          "",
       }))
     );
+
     setShowAddDropdown(false);
     setShowTypeSubmenu(false);
+    onOpenSettingsPanel(newCol);
   };
 
   return (
-    <div className="overflow-x-auto w-full relative">
+    <div className="overflow-auto w-full relative">
       {headerGroups.map((headerGroup) => (
         <div
           key={headerGroup.id}
@@ -120,8 +126,8 @@ const GridTableHeader: React.FC<Props> = ({
           }}
         >
           <div
-            style={{ width: `${rowNumberWidth}px` }}
-            className="border-r text-xs font-mono text-gray-400 px-2 py-2 text-center bg-gray-100 select-none cursor-pointer"
+            style={{ width: `${rowNumberWidth}px`, zIndex: 60 }}
+            className="sticky top-0 left-0 bg-gray-100 border-r text-xs font-mono text-gray-400 px-2 py-2 text-center select-none cursor-pointer shadow-right"
             onClick={() => setFocusedRowIndex(null)}
             onContextMenu={(e) => handleContextMenu(e, -1, 0)}
           >
@@ -135,8 +141,10 @@ const GridTableHeader: React.FC<Props> = ({
             return (
               <div
                 key={header.id}
-                className={`relative border-r whitespace-nowrap px-3 py-2 cursor-pointer rounded-sm transition-all duration-150 overflow-hidden text-ellipsis truncate ${
-                  focusedColIndex === adjustedIndex ? "bg-gray-300 shadow" : "hover:bg-gray-200 hover:shadow"
+                className={`sticky top-0 z-50 bg-gray-100 border-r whitespace-nowrap px-3 py-2 cursor-pointer transition-all duration-150 overflow-hidden text-ellipsis truncate ${
+                  focusedColIndex === adjustedIndex
+                    ? "bg-gray-300 shadow"
+                    : "hover:bg-gray-200 hover:shadow"
                 }`}
                 style={{
                   width: header.getSize(),
@@ -204,43 +212,16 @@ const GridTableHeader: React.FC<Props> = ({
           style={{ position: "fixed", top: addMenuPos.y, left: addMenuPos.x }}
         >
           <div className="p-2">
-            <div className="font-semibold mb-1">Add column</div>
-            <div
-              className="px-2 py-1 hover:bg-gray-100 rounded cursor-pointer"
-              onClick={() => handleAddColumn("text")}
-            >
-              Add column
-            </div>
-            <div
-              className="px-2 py-1 hover:bg-gray-100 rounded cursor-pointer relative"
-              onMouseEnter={() => setShowTypeSubmenu(true)}
-              onMouseLeave={() => setShowTypeSubmenu(false)}
-            >
-              Add column with type →
-              {showTypeSubmenu && (
-                <div
-                  className="absolute top-0 left-full ml-1 w-48 bg-white border shadow rounded z-50"
-                  onMouseEnter={() => setShowTypeSubmenu(true)}
-                  onMouseLeave={() => setShowTypeSubmenu(false)}
-                >
-                  {columnTypes.map((col) => (
-                    <div
-                      key={col.type}
-                      className="px-3 py-1 hover:bg-gray-100 cursor-pointer"
-                      onClick={() => handleAddColumn(col.type)}
-                    >
-                      {col.label}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div
-              className="px-2 py-1 hover:bg-gray-100 rounded cursor-pointer"
-              onClick={() => handleAddColumn("formula")}
-            >
-              Add formula column
-            </div>
+            <div className="font-semibold mb-1">Add column with type</div>
+            {columnTypes.map((col) => (
+              <div
+                key={col.type}
+                className="px-3 py-1 hover:bg-gray-100 cursor-pointer"
+                onClick={() => handleAddColumn(col.type)}
+              >
+                {col.label}
+              </div>
+            ))}
           </div>
         </div>
       )}

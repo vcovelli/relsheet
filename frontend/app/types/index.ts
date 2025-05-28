@@ -18,7 +18,7 @@ export type ColumnDataType =
 export interface CustomColumnDef<TData> {
   accessorKey: string;
   header: string;
-  type?: ColumnDataType;
+  type: ColumnDataType;
   choices?: string[] | { id: string; name: string }[];
   referenceData?: { id: string; name: string }[];
   formula?: string; // Optional field for computed columns
